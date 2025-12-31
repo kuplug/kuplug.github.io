@@ -2,260 +2,99 @@
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta charset="utf-8">
-<meta name="Description" content="DonatJS by Wawan Sismadi">
+<meta name="Description" content="Ktupad MVCS Framework by wawan sismadi">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
-
-<meta http-equiv="Cache-control" content="public" max-age="31536000">
+<!-- <meta http-equiv="Cache-control" content="public" max-age="31536000"> -->
 <meta http-equiv="Cache-Control" content="max-age=1209600">
 
-
-<!-- <link rel="manifest" href="https://donat.id/pwa/manifest.json"> -->
-
-<!-- Add to home screen for Safari on iOS -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="DonatJS UKM">
-<meta name="mobile-web-app-capable" content="yes">
-
-<link rel="apple-touch-icon" href="https://donat.id/pwa/icons/icon-152x152.png">
-
-<!-- Windows related -->
-<meta name="msapplication-TileImage" content="pwa/icons/icon-144x144.png">
-<meta name="msapplication-TileColor" content="#386CC1">
-<meta name="theme-color" content="#164391">
-
-<meta property="og:title" content="UKM"/>
-<meta property="og:image" content="https://donat.id/app/ukm/donat-ukm.png"/>
-<meta property="og:description" content="Usaha Kecil Menengah"/>
-<meta property="og:url" content="https://donat.id/app/ukm"/>
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="627" />
-<!-- TYPE BELOW IS PROBABLY: "website" or "article" or look on https://ogp.me/#types -->
-<meta property="og:type" content="website"/>
-
-<title>Piawai | Let's Code It</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
-<link rel="icon" type="image/png" href="favicon.png">
-
+<title>Piawai-Inventory</title>
+<!-- <link rel="shortcut icon" href="favicon.ico"> -->
+<link rel="stylesheet" type="text/css" href="web.css" async>
+<link rel="stylesheet" type="text/css" href="menu.css" async>
+<link rel="stylesheet" type="text/css" href="svg.css" async>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path id='pathws' d='M 6 17 L 2 17 L 2 12 C 2 -2 22 -2 22 12 C 22 20 14 22 12 22 L 7 22 L 7 12 C 7 5 17 5 17 12 C 17 15 14 17 12 17 L 11 17 L 11 14 L 12 14 C 13 14 14 13 14 12 C 14 9 10 9 10 12 L 10 19 L 12 19 C 14 19 19 17 19 12 C 19 2 5 2 5 12 L 5 14 L 6 14 Z' /></svg>" type="image/svg+xml">
-
-<link rel="stylesheet" type="text/css" href="code/donat.css" async>
-<link rel="stylesheet" type="text/css" href="style.css" >
-<style>
-.menu{
-background-image:
-/* url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23ffffff14' d='M6 17 L2 17 L2 12 C2 -2 22 -2 22 12 C22 20 14 22 12 22 L7 22 L7 12 C7 5 17 5 17 12 C17 15 14 17 12 17 L11 17 L11 14 L12 14 C13 14 14 13 14 12 C14 9 10 9 10 12 L10 19 L12 19 C14 19 19 17 19 12 C19 2 5 2 5 12 L5 14 L6 14 Z'/></svg>"), */
-linear-gradient(var(--pColor), var(--pColor), var(--pDarkColor));
-background-size: 40px, cover;
-background-repeat: repeat, no-repeat;
-background-position: center, center;
-}
-
-
-
-
-/* ===== Animated Pattern Background for Menu ===== */
-.menu {
-  position: fixed;
-  overflow: hidden;
-}
-
-/* layer animasi */
-.menu::before {
-  content: "";
-  position: absolute;
-  inset: -40%;
-
-  /* SVG pattern (titik / icon kecil) */
-  background-image:
-  /* url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><circle cx='5' cy='5' r='2' fill='white' opacity='0.35'/></svg>"); */
-
-
-  url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23ffffff14' d='M6 17 L2 17 L2 12 C2 -2 22 -2 22 12 C22 20 14 22 12 22 L7 22 L7 12 C7 5 17 5 17 12 C17 15 14 17 12 17 L11 17 L11 14 L12 14 C13 14 14 13 14 12 C14 9 10 9 10 12 L10 19 L12 19 C14 19 19 17 19 12 C19 2 5 2 5 12 L5 14 L6 14 Z'/></svg>");
-
-
-  background-repeat: repeat;
-  background-size: 60px 60px; /* jarak antar pola */
-
-  opacity: 0.15;
-  transform: rotate(-18deg);
-
-  animation: menuPatternMove 50s linear infinite;
-
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* pastikan isi menu di atas background */
-.menu > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* animasi bergerak bawah ke atas + miring */
-@keyframes menuPatternMove {
-  from {
-    background-position: 0 300px;
-  }
-  to {
-    background-position: 200px -300px;
-  }
-}
-
-
-
-</style>
+<!-- <link rel="stylesheet" href="./striped/style.css"> -->
 
 </head>
-<body>
+<body >
 
+<div id="printarea" class="cetak hide"></div>
+<div id="depan" class="hide"></div>
+<main id="main" class="main spotlight">
 
-<div id="modal" class="hide depan"></div>
-<div id="bawah"  class="toast hide" > info </div>
+<!-- <div id="content" class="content"></div> -->
 
-
-<div id="pdf-modal" class="hide depan">
-<div class="modal">
-<div class="row modalbar">
-<span class="kiri" >Modal</span>
-<button class="kanan" onclick="closeModals()">X</button>
-</div>
-<canvas id="pdf-canvas" style="width:100%; border:1px solid #ccc;"></canvas>
-<div class="gButton"  >
-<button class="Button" onclick="prevPage()">Sebelumnya</button>
-<span>Halaman <span id="page-num">1</span> / <span id="page-count">1</span></span>
-<button class="Button" onclick="nextPage()">Selanjutnya</button>
-</div>
+<div class="pwp-list-group striped-bg-both">
 
 </div>
-</div>
+
+<div id="bawah" class="pDarkColor toast hide"></div>
+</main>
 
 
-<div id="menu" class="menu" tabindex="0" >
-<div class="logo hide"><a href="#"><i class="di-piawai"></i>Piawai</a></div>
-<ul id='leftmenu'>
-<li><a href="#" onClick="dashboard.controller.view(1)"> <i class="di-house"></i>Dashboard</a></li>
-<li class="item"><a href="#" onClick="menu.controller.view(0)"> <i class="di-menu"></i> Menu</a></li>
-<li><a href="#" onClick="profile.controller.view()"> <i class="di-person"></i> Profile</a></li>
-</ul>
-</div>
 
-<div id="main" class="main login" style="min-height: 400px;" >
+<div class="row " id="header">.</div>
+<div class="main" id="body" >
 
-<div id="header" class="header" ></div>
-<div id="content" class="content" ></div>
 
-<div id="footer" class="footer" >
-Made with <svg class="svgicon" >
-<defs>
-<linearGradient id="gradient" x1="50%" y1="-2.48949813e-15%" x2="50%" y2="100%" >
-<stop stop-color="red" offset="0%"/>
-<stop stop-color="red" offset="100%"/>
-</linearGradient>
-</defs>
-<path  id="pathws" d="M12 10C7 5 4 14 12 17 20 14 17 5 12 10M12 22A8 8 0 0112 2 8 8 0 0112 22Z"></path>
-</svg> by donat.id
+
+<div class="row" id="page1">
+
+
+
+<div class="kiri" ><span class="orange">Piawai</span><span class="orange sub">Inventory</span></div>
+
+
+<div class="kanan" >
+
+  <i class="di-facebook"></i>
+  <i class="di-instagram"></i>
+  <i class="di-twitter"></i>
 </div>
 
 </div>
 
-<script type="text/javascript" src="code/donat.js"></script>
-<script type="text/javascript" src="code/svg.js"></script>
-<script type="text/javascript" src="code/avatar.js"></script>
-<!-- <script type="text/javascript" src="app/users.js"></script> -->
+<div class="row" id="page2">
+
+  <div class="menu-bar">
+    <!-- <div class="menu-title">Piawai</div> -->
+    <div class="burger" id="burgerBtn"  >☰</div>
+    <nav class="nav-links" id="navLinks">
+      <a href="#" onclick="web.setPage(web.home)" >Home</a>
+      <a href="#" onclick="web.setPage(web.product)">Product</a>
+      <a href="#" onclick="web.setPage(web.order)">Order</a>
+      <a href="#" onclick="web.setPage(web.payment)">Payment</a>
+      <a href="#" onclick="web.setPage(web.contact)">Contact</a>
+    </nav>
+  </div>
+</div>
 
 
-<script type="text/javascript" src="app/home.js"></script>
-<script type="text/javascript" src="app/config.js"></script>
-<script type="text/javascript" src="app/dashboard.js"></script>
-<script type="text/javascript" src="app/login.js"></script>
-<script type="text/javascript" src="app/menu.js"></script>
-<script type="text/javascript" src="app/profile.js"></script>
+<div class=" " id="content"></div>
 
 
-<script type="text/javascript" src="app/master/akses.js"></script>
-<script type="text/javascript" src="app/master/dashboards.js"></script>
-<script type="text/javascript" src="app/master/menu.js"></script>
-<script type="text/javascript" src="app/master/param.js"></script>
-<script type="text/javascript" src="app/master/pesan.js"></script>
-<script type="text/javascript" src="app/master/setting.js"></script>
-<script type="text/javascript" src="app/master/users.js"></script>
 
-<script type="text/javascript" src="app/lms/guru.js"></script>
-<script type="text/javascript" src="app/lms/modul.js"></script>
-<script type="text/javascript" src="app/lms/peserta.js"></script>
-<script type="text/javascript" src="app/lms/presensi.js"></script>
-<script type="text/javascript" src="app/lms/kuis.js"></script>
-<script type="text/javascript" src="app/lms/kursus.js"></script>
-<script type="text/javascript" src="app/lms/materi.js"></script>
-<script type="text/javascript" src="app/lms/mp4.js"></script>
-<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script> -->
-<script type="text/javascript" src="app/lms/pdf.js"></script>
-<script type="text/javascript" src="app/lms/sertifikat.js"></script>
+<div class="row" id="page5">
+<div class="kiri" >Piawai</div>
+<div class="kanan" >Copyright 2025</div>
+</div>
+
+</div>
+<!-- <div class="col-4-5 center" id="body">.</div> -->
+
+<script type="text/javascript" src="svg.js"></script>
+<script type="text/javascript" src="script.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript"  >
 
 
-<script type="text/javascript">
-home.controller.home();
-log('hi')
-// d.setcss('--pColor-h', '213');
-// d.setcss('--pColor-s', '100%');
-// d.setcss('--pColor-l', '22.5%');
+
+web.setPage(web.home);
 
 svg.di();
-// d.api.host="https://api.donat.id/ukm/database.php";
-// d.api.host="http://localhost/donat/api.php";
 
-// login.controller.login();
-
-// log(data)
-
-// avatar.controller.man();
-// avatar.controller.woman();
-// avatar.controller.me('avt',2);
-
-function getUrlParam(name) {
-const params = new URLSearchParams(window.location.search);
-return params.has(name) ? params.get(name) : null;
-}
-
-
-const u = getUrlParam("u");
-if (u) { console.log("Ada parameter u:", u);}
-else { console.log("Tidak ada parameter u");}
-
-
-function toggleMenu(buttonElement) {
-    // Cari elemen menu terdekat (yang merupakan sibling dari button)
-    const menu = buttonElement.nextElementSibling;
-
-    // Periksa apakah menu ini sudah terlihat
-    const isVisible = menu.classList.contains('active');
-
-    // Tutup semua menu yang sedang terbuka terlebih dahulu (UX terbaik)
-    document.querySelectorAll('.kebab-menu.active').forEach(openMenu => {
-        openMenu.classList.remove('active');
-    });
-
-    // Jika menu belum terlihat, tampilkan.
-    if (!isVisible) {
-        menu.classList.add('active');
-    }
-}
-
-// Tambahkan event listener untuk menutup menu jika mengklik di luar
-document.addEventListener('click', function(event) {
-    const isKebab = event.target.closest('.kebab-container');
-
-    // Jika klik tidak berada di dalam area kebab, tutup semua menu
-    if (!isKebab) {
-        document.querySelectorAll('.kebab-menu.active').forEach(openMenu => {
-            openMenu.classList.remove('active');
-        });
-    }
-});
 
 </script>
- 
 
 
 </body>
