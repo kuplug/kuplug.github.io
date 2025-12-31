@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>PDF Viewer + Autoplay Slide Sederhana (JS Native)</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#111827; --muted:#9ca3af; --text:#e5e7eb; --accent:#22d3ee;
+    --btn:#1f2937; --btnH:#374151; --ring:0 0 0 2px rgba(34,211,238,.35); --border:#1f2937;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0b1020,#0f172a);color:var(--text);font:14px/1.5 system-ui,Segoe UI,Roboto,Ubuntu,Helvetica,Arial}
+  header{position:sticky;top:0;z-index:10;background:rgba(15,23,42,.6);backdrop-filter:saturate(130%) blur(6px);border-bottom:1px solid var(--border)}
+  .wrap{max-width:1100px;margin:auto;padding:12px}
+  .title{display:flex;gap:12px;align-items:center;justify-content:space-between}
+  .title h1{margin:0;font-size:16px}
+  .hint{color:var(--muted);font-size:12px}
+
+  .viewport{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+  .stage{position:relative;min-height:60vh;display:grid;place-items:center}
+  iframe{width:100%;height:72vh;border:0;background:#0b1020}
+
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px;background:rgba(17,24,39,.85);border-top:1px solid var(--border)}
+  .group{display:flex;gap:6px;align-items:center}
+  .btn{appearance:none;border:1px solid #273244;background:var(--btn);color:var(--text);
+       padding:8px 10px;border-radius:10px;cursor:pointer;transition:.15s;display:inline-flex;gap:6px;align-items:center}
+  .btn:hover{background:var(--btnH)}
+  .btn[aria-pressed="true"]{box-shadow:var(--ring)}
+  .fileName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw;color:var(--muted)}
+  .pageField{width:70px;padding:7px 8px;border-radius:8px;border:1px solid #273244;background:#0b1224;color:var(--text)}
+  select{padding:7px 8px;border-radius:8px;border:1px solid #273244;background:#0b1224;color:var(--text)}
+  .overlay{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(180deg,rgba(2,6,23,.35),rgba(2,6,23,.65));backdrop-filter:blur(2px)}
+  .overlay.show{display:grid}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap title">
+    <h1>📄 PDF Viewer + Autoplay</h1>
+    <div class="hint">Autoplay menggeser antar-PDF • Alert saat mencapai slide terakhir</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="viewport" id="viewport">
+    <div class="stage" id="stage">
+      <div class="overlay" id="overlay"><span class="btn" aria-disabled="true">Memuat PDF…</span></div>
+      <iframe id="pdfFrame" title="PDF"></iframe>
+      <noscript>Aktifkan JavaScript untuk melihat PDF.</noscript>
+    </div>
+
+    <div class="toolbar">
+      <!-- AUTOPLAY -->
+      <div class="group">
+        <button class="btn" id="playPause" aria-pressed="false">▶️ Putar</button>
+        <select id="autoMs">
+          <option value="5000">5 dtk</option>
+          <option value="7000" selected>7 dtk</option>
+          <option value="10000">10 dtk</option>
+        </select>
+      </div>
+
+      <!-- PAGE NAV (per PDF) -->
+      <div class="group">
+        <button class="btn" id="firstPage" title="Halaman pertama">⏮</button>
+        <button class="btn" id="prevPage" title="Sebelumnya">◀</button>
+        <input class="pageField" type="number" id="pageInput" value="1" min="1" step="1" title="Nomor halaman"/>
+        <button class="btn" id="nextPage" title="Berikutnya">▶</button>
+        <button class="btn" id="lastPage" title="(Perkiraan) akhir">⏭</button>
+      </div>
+
+      <!-- ZOOM -->
+      <div class="group">
+        <select id="zoomSelect" title="Zoom">
+          <option value="page-width" selected>Fit Lebar</option>
+          <option value="page-fit">Fit Halaman</option>
+          <option value="100">100%</option>
+          <option value="125">125%</option>
+          <option value="150">150%</option>
+          <option value="200">200%</option>
+        </select>
+      </div>
+
+      <!-- INFO + ACTION -->
+      <div class="group" style="margin-left:auto">
+        <span class="fileName" id="fileName">-</span>
+        <button class="btn" id="openNew">🔗 Buka Tab</button>
+        <button class="btn" id="fullscreen">⛶</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* =============== KONFIGURASI =============== */
+const PDF_LIST = [
+  { title: "Contoh 1", src: "pdf01.pdf" },
+  { title: "Contoh 2", src: "pdf02.pdf" },
+  { title: "Contoh 3", src: "pdf03.pdf" },
+];
+const DEFAULT_ZOOM = "page-width";
+
+/* =============== STATE =============== */
+const S = {
+  i: 0,                 // index slide (PDF)
+  page: 1,              // nomor halaman
+  zoom: DEFAULT_ZOOM,   // zoom mode
+  auto: false,
+  autoMs: 7000,
+  timer: null,
+  lastPageGuess: 9999,  // untuk tombol "akhir" (viewer akan memantulkan ke last page)
+};
+
+/* =============== ELEMENTS =============== */
+const el = {
+  frame: document.getElementById('pdfFrame'),
+  overlay: document.getElementById('overlay'),
+  fileName: document.getElementById('fileName'),
+  pageInput: document.getElementById('pageInput'),
+  zoomSelect: document.getElementById('zoomSelect'),
+  autoMs: document.getElementById('autoMs'),
+  viewport: document.getElementById('viewport'),
+};
+
+/* =============== UTIL =============== */
+function makeUrlWithParams(src){
+  // cache-buster di QUERY (sebelum hash) agar iframe pasti reload
+  const q = src.includes('?') ? '&' : '?';
+  const base = `${src}${q}_=${Date.now()}`;
+  const hash = `#page=${S.page}&zoom=${encodeURIComponent(S.zoom)}`;
+  return base + hash;
+}
+function showOverlay(v){ el.overlay.classList.toggle('show', !!v); }
+
+/* =============== LOADING =============== */
+function loadSlide(i){
+  S.i = ((i % PDF_LIST.length) + PDF_LIST.length) % PDF_LIST.length;
+  S.page = 1; S.zoom = DEFAULT_ZOOM;
+  el.pageInput.value = '1';
+  el.zoomSelect.value = S.zoom;
+
+  const item = PDF_LIST[S.i];
+  el.fileName.textContent = item.title || item.src;
+
+  showOverlay(true);
+  el.frame.src = makeUrlWithParams(item.src);
+}
+
+/* =============== PAGE CONTROL =============== */
+function reloadPageParams(){
+  const item = PDF_LIST[S.i];
+  el.frame.src = makeUrlWithParams(item.src);
+  // Fallback same-origin
+  try{ el.frame.contentWindow?.location.replace?.(el.frame.src); }catch{}
+}
+function firstPage(){ S.page = 1; el.pageInput.value = '1'; reloadPageParams(); }
+function prevPage(){ S.page = Math.max(1, S.page-1); el.pageInput.value = String(S.page); reloadPageParams(); }
+function nextPage(){ S.page = Math.max(1, S.page+1); el.pageInput.value = String(S.page); reloadPageParams(); }
+function lastPage(){ S.page = S.lastPageGuess; el.pageInput.value = String(S.page); reloadPageParams(); }
+function setPageFromInput(){
+  const v = parseInt(el.pageInput.value || '1', 10);
+  S.page = isNaN(v) ? 1 : Math.max(1, v);
+  reloadPageParams();
+}
+function setZoom(z){ S.zoom = z; reloadPageParams(true); }
+
+/* =============== AUTOPLAY (antar PDF) =============== */
+function startAuto(){
+  if(S.timer) return;
+  S.auto = true;
+  document.getElementById('playPause').setAttribute('aria-pressed','true');
+  document.getElementById('playPause').textContent = '⏸ Jeda';
+  S.timer = setInterval(()=>{
+    // Pindah ke slide berikutnya setiap interval
+    if (S.i >= PDF_LIST.length - 1) {
+      stopAuto(); // berhenti di slide terakhir
+      alert('✅ Anda sudah mencapai slide terakhir.');
+      return;
+    }
+    loadSlide(S.i + 1);
+  }, S.autoMs);
+}
+function stopAuto(){
+  S.auto = false;
+  document.getElementById('playPause').setAttribute('aria-pressed','false');
+  document.getElementById('playPause').textContent = '▶️ Putar';
+  clearInterval(S.timer); S.timer=null;
+}
+function toggleAuto(){ S.auto ? stopAuto() : startAuto(); }
+
+/* =============== EVENTS =============== */
+document.getElementById('playPause').onclick = toggleAuto;
+el.autoMs.onchange = ()=>{ S.autoMs = parseInt(el.autoMs.value,10)||7000; if(S.auto){ stopAuto(); startAuto(); } };
+
+document.getElementById('firstPage').onclick = firstPage;
+document.getElementById('prevPage').onclick = prevPage;
+document.getElementById('nextPage').onclick = nextPage;
+document.getElementById('lastPage').onclick = lastPage;
+el.pageInput.addEventListener('change', setPageFromInput);
+el.pageInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ setPageFromInput(); }});
+el.zoomSelect.onchange = ()=> setZoom(el.zoomSelect.value);
+
+document.getElementById('openNew').onclick = ()=> window.open(PDF_LIST[S.i].src, '_blank');
+document.getElementById('fullscreen').onclick = ()=>{
+  const v = el.viewport;
+  if(!document.fullscreenElement){ v.requestFullscreen?.(); } else { document.exitFullscreen?.(); }
+};
+
+el.frame.addEventListener('load', ()=>{ showOverlay(false); });
+
+/* =============== INIT =============== */
+loadSlide(0);
+</script>
+</body>
+</html>

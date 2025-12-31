@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>PDF Viewer (Sinkron Scroll & Alert Last Page)</title>
+<style>
+  :root{--bg:#0f172a;--panel:#111827;--muted:#9ca3af;--text:#e5e7eb;--btn:#1f2937;--btnH:#374151;--border:#1f2937;--ring:0 0 0 2px rgba(34,211,238,.35)}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0b1020,#0f172a);color:var(--text);font:14px/1.5 system-ui,Segoe UI,Roboto,Ubuntu,Helvetica,Arial}
+  header{position:sticky;top:0;z-index:10;background:rgba(15,23,42,.6);backdrop-filter:saturate(130%) blur(6px);border-bottom:1px solid var(--border)}
+  .wrap{max-width:1000px;margin:auto;padding:12px}
+  .title{display:flex;gap:12px;align-items:center;justify-content:space-between}
+  .title h1{margin:0;font-size:16px}
+  .hint{color:var(--muted);font-size:12px}
+  .viewport{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+  .stage{position:relative;min-height:60vh;display:grid;place-items:center}
+  iframe{width:100%;height:72vh;border:0;background:#0b1020}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px;background:rgba(17,24,39,.85);border-top:1px solid var(--border)}
+  .group{display:flex;gap:6px;align-items:center}
+  .btn{appearance:none;border:1px solid #273244;background:var(--btn);color:var(--text);padding:8px 10px;border-radius:10px;cursor:pointer;transition:.15s;display:inline-flex;gap:6px;align-items:center}
+  .btn:hover{background:var(--btnH)}
+  .pageField{width:76px;padding:7px 8px;border-radius:8px;border:1px solid #273244;background:#0b1224;color:var(--text)}
+  select{padding:7px 8px;border-radius:8px;border:1px solid #273244;background:#0b1224;color:var(--text)}
+  .fileName{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .overlay{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(180deg,rgba(2,6,23,.35),rgba(2,6,23,.6));backdrop-filter:blur(2px)}
+  .overlay.show{display:grid}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap title">
+    <h1>📄 PDF Viewer</h1>
+    <div class="hint">Page input otomatis mengikuti scroll • Alert saat mencapai halaman terakhir</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="viewport" id="viewport">
+    <div class="stage">
+      <div class="overlay" id="overlay"><span class="btn" aria-disabled="true">Memuat PDF…</span></div>
+      <iframe id="pdfFrame" title="PDF"></iframe>
+      <noscript>Aktifkan JavaScript untuk melihat PDF.</noscript>
+    </div>
+
+    <div class="toolbar">
+      <!-- NAVIGASI HALAMAN (tanpa first/last) -->
+      <div class="group">
+        <button class="btn" id="prevPage"  title="Sebelumnya">◀</button>
+        <input class="pageField" type="number" id="pageInput" value="1" min="1" step="1" title="Nomor halaman"/>
+        <button class="btn" id="nextPage"  title="Berikutnya">▶</button>
+      </div>
+
+      <!-- ZOOM -->
+      <div class="group">
+        <select id="zoomSelect" title="Zoom">
+          <option value="page-width" selected>Fit Lebar</option>
+          <option value="page-fit">Fit Halaman</option>
+          <option value="100">100%</option>
+          <option value="125">125%</option>
+          <option value="150">150%</option>
+          <option value="200">200%</option>
+        </select>
+      </div>
+
+      <!-- INFO -->
+      <div class="group" style="margin-left:auto">
+        <span class="fileName" id="fileName">-</span>
+        <span class="fileName" id="pageTotal" title="Total halaman">(?)</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ====== KONFIG ====== */
+const PDF_SRC = "pdf01.pdf";         // ganti ke filemu (same-origin disarankan)
+const DEFAULT_ZOOM = "page-width";
+const MANUAL_TOTAL_PAGES = null;      // isi angka jika deteksi otomatis gagal (mis. 12)
+
+/* ====== STATE ====== */
+const S = { page: 1, zoom: DEFAULT_ZOOM, total: null, alertedLast: false, hashSyncTimer: null };
+
+const el = {
+  frame: document.getElementById('pdfFrame'),
+  overlay: document.getElementById('overlay'),
+  pageInput: document.getElementById('pageInput'),
+  zoomSelect: document.getElementById('zoomSelect'),
+  fileName: document.getElementById('fileName'),
+  pageTotal: document.getElementById('pageTotal'),
+};
+
+/* ====== UTIL ====== */
+function showOverlay(v){ el.overlay.classList.toggle('show', !!v); }
+function updateTotalsLabel(){
+  el.pageTotal.textContent = S.total ? `(total: ${S.total})` : `(total: tidak diketahui)`;
+}
+function makeUrl(){
+  // cache-buster di query agar iframe pasti reload, hash untuk page/zoom
+  const q = PDF_SRC.includes('?') ? '&' : '?';
+  const base = `${PDF_SRC}${q}_=${Date.now()}`;
+  const hash = `#page=${S.page}&zoom=${encodeURIComponent(S.zoom)}`;
+  return base + hash;
+}
+function load(){
+  showOverlay(true);
+  el.fileName.textContent = PDF_SRC;
+  el.frame.src = makeUrl();
+}
+function reloadParams(){
+  el.frame.src = makeUrl();
+  try{ el.frame.contentWindow?.location.replace?.(el.frame.src); }catch{} // same-origin booster
+}
+
+/* ====== DETEKSI TOTAL HALAMAN (best-effort) ====== */
+async function detectTotalPages(){
+  if (typeof MANUAL_TOTAL_PAGES === 'number' && MANUAL_TOTAL_PAGES > 0){
+    S.total = MANUAL_TOTAL_PAGES; updateTotalsLabel(); return;
+  }
+  try{
+    const res = await fetch(PDF_SRC, {cache:'no-store'});
+    if(!res.ok) throw new Error('fetch gagal');
+    const buf = await res.arrayBuffer();
+    const txt = new TextDecoder('latin1').decode(buf);
+    const matches = txt.match(/\/Type\s*\/Page\b/g);
+    if (matches && matches.length > 0){ S.total = matches.length; }
+  }catch(e){ /* CORS/struktur PDF—biarkan null */ }
+  updateTotalsLabel();
+}
+
+/* ====== SINKRONISASI DENGAN SCROLL (via hash) ======
+   - Poll `iframe.contentWindow.location.hash` untuk membaca '#page=N'
+   - Saat berubah karena scroll/user nav, update input & state.
+   - Bekerja jika viewer mengekspos hash (same-origin atau kebijakan viewer mengizinkan). */
+function startHashSync(){
+  stopHashSync();
+  try{
+    S.hashSyncTimer = setInterval(()=>{
+      let hash = "";
+      try{ hash = el.frame.contentWindow?.location?.hash || ""; }catch{ /* cross-origin */ }
+      const m = hash.match(/page=(\d+)/i);
+      if (m){
+        const observed = parseInt(m[1], 10) || 1;
+        if (observed !== S.page){
+          S.page = observed;
+          el.pageInput.value = String(S.page);
+          // Alert saat mencapai halaman terakhir melalui scroll
+          maybeAlertLast();
+        }
+      }
+    }, 300);
+  }catch{ /* ignore */ }
+}
+function stopHashSync(){
+  if (S.hashSyncTimer){ clearInterval(S.hashSyncTimer); S.hashSyncTimer = null; }
+}
+
+/* ====== ALERT LAST PAGE ====== */
+function maybeAlertLast(){
+  if (S.total && S.page >= S.total && !S.alertedLast){
+    S.alertedLast = true;
+    alert(`✅ Anda sudah mencapai halaman terakhir (${S.total}).`);
+  }
+}
+
+/* ====== NAVIGASI HALAMAN (prev/next + input) ====== */
+function prevPage(){
+  const nextVal = Math.max(1, S.page - 1);
+  if (nextVal !== S.page){ S.alertedLast = false; }
+  S.page = nextVal;
+  el.pageInput.value = String(S.page);
+  reloadParams();
+}
+function nextPage(){
+  if (S.total){
+    if (S.page >= S.total){ S.page = S.total; el.pageInput.value = String(S.page); maybeAlertLast(); return; }
+  }
+  S.page += 1;
+  el.pageInput.value = String(S.page);
+  reloadParams();
+  maybeAlertLast();
+}
+function setPageFromInput(){
+  const v = parseInt(el.pageInput.value || '1', 10);
+  let newPage = isNaN(v) ? 1 : Math.max(1, v);
+  if (S.total) newPage = Math.min(newPage, S.total);
+  S.alertedLast = false;
+  S.page = newPage;
+  el.pageInput.value = String(S.page);
+  reloadParams();
+}
+
+/* ====== ZOOM ====== */
+function setZoom(z){ S.zoom = z; reloadParams(); }
+
+/* ====== EVENTS ====== */
+document.getElementById('prevPage').onclick  = prevPage;
+document.getElementById('nextPage').onclick  = nextPage;
+el.pageInput.addEventListener('change', setPageFromInput);
+el.pageInput.addEventListener('keydown', e=>{ if(e.key==='Enter') setPageFromInput(); });
+el.zoomSelect.onchange = ()=> setZoom(el.zoomSelect.value);
+
+el.frame.addEventListener('load', ()=>{
+  showOverlay(false);
+  startHashSync();   // mulai sinkronisasi scroll→input
+});
+
+window.addEventListener('beforeunload', stopHashSync);
+
+// Keyboard
+window.addEventListener('keydown', (e)=>{
+  if(['ArrowRight','PageDown'].includes(e.key)){ e.preventDefault(); nextPage(); }
+  if(['ArrowLeft','PageUp'].includes(e.key)){ e.preventDefault(); prevPage(); }
+});
+
+/* ====== INIT ====== */
+detectTotalPages();  // jika berhasil, alert last jadi akurat
+load();
+</script>
+</body>
+</html>
