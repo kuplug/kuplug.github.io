@@ -54,7 +54,7 @@ view:{
 
 
 <div class="row shadow">
-<img src="bg.png" class="img">
+<img src="piawai.jpg" class="img">
 </div>
 
     <div class="row shadow">
